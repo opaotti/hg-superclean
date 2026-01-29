@@ -82,8 +82,10 @@ public class Bot extends Logger {
         } else log("kontrolle verloren...");
         gm.update(botPos);
 
-        hl.addTiles(sm.getTree(), "#7ee8fdcc");
-        hl.addTiles(mapM.wallPos, "#ff0000cc");
+        if (mustLog){
+            hl.addTiles(sm.getTree(), "#7ee8fdcc");
+            hl.addTiles(mapM.wallPos, "#ff0000cc");
+        }
     }
 
     private static String calculateNextMove(){

@@ -1,6 +1,7 @@
 import java.util.*;
 
 public class GemPredictionTree extends Logger {
+    private static List<GemPredictionTree> tree = new ArrayList<>();
     public final Point pos;
     public GemPredictionTree parent;
     public List<GemPredictionTree> children = new ArrayList<>();
@@ -9,16 +10,14 @@ public class GemPredictionTree extends Logger {
         this.pos = pos;
     }
 
-    public GemPredictionTree addChild(Point childPos) {
+    public void addChild(Point childPos) {
         if(getChildrenPos().contains(childPos)) {
-            if (childPos.equals(new Point(17, 26))) log("ES WIRD GESAGT ES IST SCHON CHILD");
-            return null;
+            return;
         }
 
         GemPredictionTree child = new GemPredictionTree(childPos);
         child.parent = this;
         children.add(child);
-        return child;
     }
 
     private void addNode(GemPredictionTree node){
@@ -30,10 +29,17 @@ public class GemPredictionTree extends Logger {
 
     public void addChildren(Collection<Point> points){
         List<Point> list = points.stream().sorted(Comparator.comparingInt(Utils::rotatedOrder)).toList();
+        Set<Point> existing = new HashSet<>();
+        for (GemPredictionTree node : tree) existing.add(node.pos);
+
+        boolean added = false;
+
         for (Point p : list) {
-            if (p.equals(pos)) continue;
+            if(existing.contains(p)) continue;
             addChild(p);
+            added = true;
         }
+        if (!added && children.isEmpty() && parent != null) parent.removeChildNode(this);
     }
 
     public int checkGemLayer(Point botPos){
@@ -79,22 +85,18 @@ public class GemPredictionTree extends Logger {
             Point botPos
     ) {
         if (currentDepth + 1 == targetDepth) {
-            Iterator<GemPredictionTree> it = node.children.iterator();
             List<GemPredictionTree> toAdd = new ArrayList<>();
 
-            while (it.hasNext()) {
-                GemPredictionTree child = it.next();
-
+            for (GemPredictionTree child : node.children){
                 // Kinder zwischenspeichern
                 for (GemPredictionTree grandChild : child.children) {
                     if (grandChild.pos.equals(botPos)) continue;
                     grandChild.parent = node;
                     toAdd.add(grandChild);
                 }
-
-                it.remove();
             }
 
+            node.children.clear();
             // NACH der Iteration neue Kinder hinzufügen
             for(GemPredictionTree g : toAdd) node.addNode(g);
             return;
@@ -172,13 +174,89 @@ public class GemPredictionTree extends Logger {
         }
     }
 
-    public void getAll(List<Point> list){
-        list.add(pos);
-        for(GemPredictionTree child : children) child.getAll(list);
+    public void removeChildNode(GemPredictionTree child){
+        children.remove(child);
+        if (children.isEmpty() && parent != null) parent.removeChildNode(this);
+    }
+
+    public void removeChildrenNodes(Collection<GemPredictionTree> childs){
+        for (GemPredictionTree child : childs) removeChildNode(child);
     }
 
     public GemPredictionTree getChild(){
         if (children.isEmpty()) return null;
         return children.get(0);
+    }
+
+    public List<GemPredictionTree> getAllNodes(){
+        List<GemPredictionTree> l = new ArrayList<>();
+        collect(l);
+        return l;
+    }
+
+    public void collect(List<GemPredictionTree> l){
+        l.add(this);
+        for (GemPredictionTree g : children) g.collect(l);
+    }
+
+    public List<Point> getPathPositions(){
+        GemPredictionTree current = this;
+        List<Point> points = new ArrayList<>();
+
+        while(current.parent != null){
+            points.add(current.pos);
+            current = current.parent;
+        }
+        return points;
+    }
+
+    public boolean fixLayer(int depth, Point fixed){
+        Iterator<GemPredictionTree> it = children.iterator();
+
+        while (it.hasNext()) {
+            GemPredictionTree child = it.next();
+
+            if (depth == 1) {
+                if (!child.pos.equals(fixed)) {
+                    it.remove();
+                    continue;
+                }
+            }
+
+            if (depth > 1) {
+                boolean keep = child.fixLayer(depth - 1, fixed);
+                if (!keep) it.remove();
+            }
+        }
+
+        return !children.isEmpty();
+    }
+
+    public GemPredictionTree getRoot(){
+        return pos == null ? this : parent.getRoot();
+    }
+
+    public void printTree() {
+        if (!mustLog) return;
+        printTree("", true);
+    }
+
+    private void printTree(String prefix, boolean isLast) {
+        if (parent == null) {
+            log("ROOT");
+        } else {
+            log(prefix + (isLast ? "└─ " : "├─ ") + pos);
+        }
+
+        for (int i = 0; i < children.size(); i++) {
+            children.get(i).printTree(
+                    prefix + (parent == null ? "" : (isLast ? "    -" : "│   -")),
+                    i == children.size() - 1
+            );
+        }
+    }
+
+    public static void linkAllNodesList(List<GemPredictionTree> l){
+        tree = l;
     }
 }

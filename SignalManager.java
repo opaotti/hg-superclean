@@ -7,6 +7,7 @@ public class SignalManager extends Logger {
     private GemPredictionTree root = new GemPredictionTree(null);
     private List<int[]> ringLookUp = new ArrayList<>();
     private Set<GemPredictionTree> deepestNodes = new HashSet<>();
+    public List<GemPredictionTree> allNodes = new ArrayList<>();
 
     public List<Point> gems = new ArrayList<>();
     public List<Integer> gemsTtl = new ArrayList<>();
@@ -19,6 +20,7 @@ public class SignalManager extends Logger {
 
     public SignalManager(GridMap m){
         map = m;
+        GemPredictionTree.linkAllNodesList(allNodes);
         setupRingLookUp();
         log("Lookup size: "+ringLookUp.size());
     }
@@ -27,6 +29,8 @@ public class SignalManager extends Logger {
         signal = signalValue;
         signalSum.clear();
         deepestNodes.clear();
+        allNodes.clear();
+        allNodes.addAll(root.getAllNodes());
         botPos = Bot.botPos;
         log("Signal: "+signal);
 
@@ -45,11 +49,11 @@ public class SignalManager extends Logger {
 
             Bot.gm.insertGemsFromLists(gems, gemsTtl);
         }
-        else{
+        else{/*
             log("root.children.size: "+root.children.size());
             log(root.getChildrenPos());
             if(!root.children.isEmpty()) if (!root.getChild().children.isEmpty()) log("root.grandchild.children.size: "+root.getChild().getChild().children.size());
-            log(root.getChild().getChildrenPos());
+            log(root.getChild().getChildrenPos());*/
         }
 
         if (root.children.isEmpty() && signalValue > 0){
@@ -57,6 +61,7 @@ public class SignalManager extends Logger {
 
             gemsTtl.add(MAX_TTL);
             gems.add(null);
+            log("Erster Gem gespawnt ➕");
         }
         else if (signalValue > 0){
             deepestNodes.addAll(root.getDeepestNodes());
@@ -85,6 +90,7 @@ public class SignalManager extends Logger {
                 gems.add(null);
             }
         }
+        root.printTree();
     }
 
     public Point getBestPossibleGem(Point startPos){
@@ -96,17 +102,10 @@ public class SignalManager extends Logger {
         boolean explainable = false;
         List<GemPredictionTree> toDelete = new ArrayList<>();
 
-        Iterator<GemPredictionTree> it = deepestNodes.iterator();
-
-        while (it.hasNext()) {
-            GemPredictionTree leaf = it.next();
-            float expected = signalSum.get(leaf);
-
-            float dif = Math.abs(expected - signal);
-
-            if (dif < EPS) {explainable = true;
+        for (GemPredictionTree leaf : deepestNodes){
+            if (Math.abs(signalSum.get(leaf) - signal) < EPS){
+                explainable = true;
             } else {
-                // Pfad unmöglich -> entfernen
                 toDelete.add(leaf);
             }
         }
@@ -114,11 +113,12 @@ public class SignalManager extends Logger {
         if (!explainable) {log("➕ Neuer Gem MUSS existieren");}
         else{
             for(GemPredictionTree leaf : toDelete){
-                removeLeafPath(leaf);
+                leaf.parent.removeChildNode(leaf);
                 deepestNodes.remove(leaf);
             }
         }
 
+        //complileTree();
         return !explainable;
     }
 
@@ -136,18 +136,23 @@ public class SignalManager extends Logger {
         }
     }
 
-    private void removeLeafPath(GemPredictionTree leaf) {
-        GemPredictionTree current = leaf;
+    private void complileTree(){
+        Map<Integer, Set<Point>> layerPositions = new HashMap<>();
 
-        while (current.parent != null) {
-            GemPredictionTree parent = current.parent;
+        for (GemPredictionTree leaf : deepestNodes) {
+            List<Point> path = leaf.getPathPositions(); // von root bis leaf
+            for (int i = 0; i < path.size(); i++) {
+                layerPositions
+                        .computeIfAbsent(i, k -> new HashSet<>())
+                        .add(path.get(i));
+            }
+        }
 
-            parent.children.remove(current);
-
-            // wenn Parent noch andere Kinder hat -> abbrechen
-            if (!parent.children.isEmpty()) return;
-
-            current = parent;
+        for (Map.Entry<Integer, Set<Point>> e : layerPositions.entrySet()) {
+            if (e.getValue().size() == 1) {
+                Point fixed = e.getValue().iterator().next();
+                root.fixLayer(e.getKey(), fixed);
+            }
         }
     }
 
@@ -162,13 +167,17 @@ public class SignalManager extends Logger {
     }
 
     private float getSignalFromNode(GemPredictionTree node){
+        Set<Point> unique = new HashSet<>();
         GemPredictionTree current = node;
-        float signal = 0;
         while(current.parent != null){
-            signal += getSignalFromDist(Utils.getPythagorasDist(botPos, current.pos));
+            unique.add(current.pos);
             current = current.parent;
         }
-        return signal;
+        float sum = 0;
+        for(Point p : unique){
+            sum += getSignalFromDist(Utils.getPythagorasDist(botPos, p));
+        }
+        return sum;
     }
 
     private Set<Point> euclideanRing(Point pos, int d) {
@@ -213,7 +222,7 @@ public class SignalManager extends Logger {
 
     public List<Point> getTree(){
         List<Point> list = new ArrayList<>();
-        root.getAll(list);
+        for (GemPredictionTree node : allNodes) list.add(node.pos);
         return list;
     }
 
