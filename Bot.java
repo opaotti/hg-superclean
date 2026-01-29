@@ -68,6 +68,7 @@ public class Bot extends Logger {
         log("BotPos: "+botPos);
         hl.clearTiles();
         POV.clear();
+        if (lostControl && parser.parseSignal() == 0) lostControl = false;
 
         POV.addAll(parser.parseFloors());
         if (POV.size() > bestPOVSize) {
@@ -146,5 +147,6 @@ public class Bot extends Logger {
     public static void lostControl(){
         log("Kontrolle verloren");
         lostControl = true;
+        sm.resetRoot();
     }
 }

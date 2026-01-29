@@ -36,10 +36,16 @@ public class SignalManager extends Logger {
         allNodes.addAll(root.getAllNodes());
         botPos = Bot.botPos;
         log("Signal: "+signal);
+        log("gemsttl.size(): "+gemsTtl.size());
 
         updateTtl();
 
         root.printTree();
+
+        if (signal == 0){
+            gemsTtl.clear();
+            gems.clear();
+        }
 
         if (root.isLine()){
             log("Alles berechnet Gem size: "+root.getTreeDepth());
@@ -76,6 +82,7 @@ public class SignalManager extends Logger {
                 gems.add(newGem);
             } else if(pruneAndCheckNewGem()){
                 if (gemsTtl.size() > MAX_GEMS){
+                    log("zu viele gems");
                     Bot.lostControl();
                     return;
                 }
@@ -270,9 +277,14 @@ public class SignalManager extends Logger {
 
                 gemsTtl.remove(depth-1);
                 gems.remove(depth-1);
+                break;
             }
         }
         log("Nach collect:");
         root.printTree();
+    }
+
+    public void resetRoot(){
+        root.children.clear();
     }
 }

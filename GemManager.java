@@ -61,6 +61,7 @@ public class GemManager extends Logger {
 
             Path pathPiece = pf.aStar(currentPos, pos, mapComplete);
             if (pathPiece.path() == null){
+                log("unmöglicher gem dabei");
                 Bot.lostControl();
                 return;
             }
