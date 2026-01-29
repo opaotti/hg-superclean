@@ -110,7 +110,7 @@ public class GemPredictionTree extends Logger {
 
     public Set<GemPredictionTree> getDeepestNodes(){
         Set<GemPredictionTree> result = new HashSet<>();
-        collectDeepest(this, 0, result, getDepth());
+        collectDeepest(this, 0, result, getTreeDepth());
         return result;
     }
 
@@ -131,9 +131,20 @@ public class GemPredictionTree extends Logger {
         }
     }
 
-    public int getDepth(){
+    public int getTreeDepth(){
         if (children.isEmpty()) return 0;
-        return children.get(0).getDepth()+1;
+        return children.get(0).getTreeDepth()+1;
+    }
+
+    public int getOwnDepth(){
+        GemPredictionTree current = this;
+        int depth = 0;
+
+        while(current.parent != null){
+            current = current.parent;
+            depth++;
+        }
+        return depth;
     }
 
     public boolean isLine(){
@@ -250,7 +261,7 @@ public class GemPredictionTree extends Logger {
 
         for (int i = 0; i < children.size(); i++) {
             children.get(i).printTree(
-                    prefix + (parent == null ? "" : (isLast ? "    -" : "│   -")),
+                    prefix + (parent == null ? "" : (isLast ? "····" : "│···")),
                     i == children.size() - 1
             );
         }

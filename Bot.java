@@ -55,8 +55,8 @@ public class Bot extends Logger {
         mapM = new MapManager(cfg.width(), cfg.height());
         map = mapM.getMap();
         pf = new Pathfinder(map);
-        sm = new SignalManager(map);
         gm = new GemManager(pf);
+        sm = new SignalManager(map, gm);
         hl = new Highlighter();
     }
 

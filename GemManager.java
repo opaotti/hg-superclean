@@ -5,8 +5,10 @@ public class GemManager extends Logger {
     private final Map<Path, Integer> gemPaths = new HashMap<>();
     private Point botPos;
     private boolean mapComplete;
+    private Point newSpawntGem;
 
     private final Pathfinder pf;
+    private final int MAX_TTL = Bot.cfg.gem_ttl();
 
     public GemManager(Pathfinder p){
         pf = p;
@@ -98,8 +100,13 @@ public class GemManager extends Logger {
 
     // --- Gem-Verarbeitung ---
     private void readVisibleGems(List<Gem> parsedGems){
+        newSpawntGem = null;
         Set<Gem> set = new HashSet<>(parsedGems);
-        for (Gem g : set) if(!Utils.isPosInGems(g.pos, gems)) gems.add(g);
+
+        for (Gem g : set) if(!Utils.isPosInGems(g.pos, gems)) {
+            gems.add(g);
+            if (g.ttl == MAX_TTL) newSpawntGem = g.pos;
+        }
     }
 
     private void gemsTick() {
@@ -120,7 +127,9 @@ public class GemManager extends Logger {
         if(!gems.isEmpty()) for(Gem g : gems) if(g.pos.equals(botPos) ||
                 // damit falls ein enemy die nimmt die entfernt werden.
                 (Bot.POV.contains(g.pos) && !Utils.gemsToPointSet(parsedGems).contains(g.pos))) {
+            log("➖ Gem gesammelt");
             toRemove.add(g);
+            Bot.sm.gemCollected(g.pos);
         }
         if (!toRemove.isEmpty()) {
             gems.removeAll(toRemove);
@@ -131,16 +140,21 @@ public class GemManager extends Logger {
     }
 
     public void insertGemsFromLists(List<Point> points, List<Integer> ttls){
-        if (points.isEmpty() || ttls.isEmpty() || Bot.lostControl) return;
+        if (points.isEmpty() || ttls.isEmpty() || Bot.lostControl || points.size() != ttls.size()) return;
         gems.clear();
 
         for(int c = 0; c < points.size(); c++){
             Gem g = new Gem(points.get(c), ttls.get(c));
             gems.add(g);
         }
+        log("inserted");
     }
 
     public List<Gem> getGems(){
         return gems;
+    }
+
+    public Point newSpawnedGemPos(){
+        return newSpawntGem;
     }
 }

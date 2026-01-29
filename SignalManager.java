@@ -18,8 +18,11 @@ public class SignalManager extends Logger {
     private static final int MAX_TTL = Bot.cfg.gem_ttl();
     private static final int MAX_GEMS = Bot.cfg.maxGems();
 
-    public SignalManager(GridMap m){
+    private GemManager gm;
+
+    public SignalManager(GridMap m, GemManager g){
         map = m;
+        gm = g;
         GemPredictionTree.linkAllNodesList(allNodes);
         setupRingLookUp();
         log("Lookup size: "+ringLookUp.size());
@@ -35,19 +38,14 @@ public class SignalManager extends Logger {
         log("Signal: "+signal);
 
         updateTtl();
-        // Um einsammeln zu überprüfen WIP
-        int gemDepth = root.checkGemLayer(botPos);
-        if(gemDepth > 0){
-            gemDepth--;
-            gems.remove(gemDepth);
-            gemsTtl.remove(gemDepth);
-        }
+
+        root.printTree();
 
         if (root.isLine()){
-            log("Alles berechnet Gem size: "+root.getDepth());
+            log("Alles berechnet Gem size: "+root.getTreeDepth());
             gems = new ArrayList<>(root.getLine());
 
-            Bot.gm.insertGemsFromLists(gems, gemsTtl);
+            gm.insertGemsFromLists(gems, gemsTtl);
         }
         else{/*
             log("root.children.size: "+root.children.size());
@@ -64,10 +62,19 @@ public class SignalManager extends Logger {
             log("Erster Gem gespawnt ➕");
         }
         else if (signalValue > 0){
-            deepestNodes.addAll(root.getDeepestNodes());
+            // deepestnodes init
+            for (GemPredictionTree node : allNodes) if (node.children.isEmpty()) deepestNodes.add(node);
+
             computeSignalSums(root, 0f);
 
-            if(pruneAndCheckNewGem()){
+            Point newGem = gm.newSpawnedGemPos();
+            if (newGem != null){
+                for (GemPredictionTree leaf : deepestNodes){
+                    leaf.addChild(newGem);
+                }
+                gemsTtl.add(MAX_TTL);
+                gems.add(newGem);
+            } else if(pruneAndCheckNewGem()){
                 if (gemsTtl.size() > MAX_GEMS){
                     Bot.lostControl();
                     return;
@@ -209,7 +216,6 @@ public class SignalManager extends Logger {
         for (int idx = 0; idx < gemsTtl.size(); idx++) {
             int ttl = gemsTtl.get(idx) - 1;
             gemsTtl.set(idx, ttl);
-            log(ttl);
 
             if (ttl <= 0) {
                 gemsTtl.remove(idx);
@@ -248,5 +254,25 @@ public class SignalManager extends Logger {
             for (int i = 0; i < tmp.size(); i++) arr[i] = tmp.get(i);
             ringLookUp.add(arr);
         }
+    }
+
+    public void gemCollected(Point gemPos){
+        log("Vor collect:");
+        root.printTree();
+
+        for (GemPredictionTree node : allNodes){
+            if (node.pos == null) continue;
+
+            if(node.pos.equals(gemPos)){
+                int depth = node.getOwnDepth();
+                root.removeLayer(depth, gemPos);
+                log(depth+". Gemlayer wurde gelöscht wegen "+gemPos+" (depth="+depth+")");
+
+                gemsTtl.remove(depth-1);
+                gems.remove(depth-1);
+            }
+        }
+        log("Nach collect:");
+        root.printTree();
     }
 }
