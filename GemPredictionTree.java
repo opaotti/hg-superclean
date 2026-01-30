@@ -261,7 +261,7 @@ public class GemPredictionTree extends Logger {
 
         for (int i = 0; i < children.size(); i++) {
             children.get(i).printTree(
-                    prefix + (parent == null ? "" : (isLast ? "····" : "│···")),
+                    prefix + (parent == null ? "" : (isLast ? "...." : "│...")),
                     i == children.size() - 1
             );
         }

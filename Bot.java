@@ -51,6 +51,7 @@ public class Bot extends Logger {
 
     private static void firstTick(){
         cfg = parser.parseConfig();
+        log(cfg);
 
         mapM = new MapManager(cfg.width(), cfg.height());
         map = mapM.getMap();
@@ -145,7 +146,7 @@ public class Bot extends Logger {
     }
 
     public static void lostControl(){
-        log("Kontrolle verloren");
+        System.err.println("Kontrolle verloren");
         lostControl = true;
         sm.resetRoot();
     }

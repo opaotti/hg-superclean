@@ -105,6 +105,7 @@ public class SignalManager extends Logger {
             }
         }
         root.printTree();
+        log("Signal: "+signal);
     }
 
     public Point getBestPossibleGem(Point startPos){
@@ -112,12 +113,14 @@ public class SignalManager extends Logger {
     }
 
     private boolean pruneAndCheckNewGem() {
+        //je kleiner das signal ist, desto höher die toleranz.
         final float EPS = 0.0001f;
+        float eps = EPS;// + 0.00015f / (float)(signal + .0001);
         boolean explainable = false;
         List<GemPredictionTree> toDelete = new ArrayList<>();
 
         for (GemPredictionTree leaf : deepestNodes){
-            if (Math.abs(signalSum.get(leaf) - signal) < EPS){
+            if (Math.abs(signalSum.get(leaf) - signal) < eps){
                 explainable = true;
             } else {
                 toDelete.add(leaf);
@@ -132,7 +135,6 @@ public class SignalManager extends Logger {
             }
         }
 
-        //complileTree();
         return !explainable;
     }
 
@@ -147,26 +149,6 @@ public class SignalManager extends Logger {
 
         for (GemPredictionTree child : node.children){
             computeSignalSums(child, sum);
-        }
-    }
-
-    private void complileTree(){
-        Map<Integer, Set<Point>> layerPositions = new HashMap<>();
-
-        for (GemPredictionTree leaf : deepestNodes) {
-            List<Point> path = leaf.getPathPositions(); // von root bis leaf
-            for (int i = 0; i < path.size(); i++) {
-                layerPositions
-                        .computeIfAbsent(i, k -> new HashSet<>())
-                        .add(path.get(i));
-            }
-        }
-
-        for (Map.Entry<Integer, Set<Point>> e : layerPositions.entrySet()) {
-            if (e.getValue().size() == 1) {
-                Point fixed = e.getValue().iterator().next();
-                root.fixLayer(e.getKey(), fixed);
-            }
         }
     }
 
