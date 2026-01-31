@@ -30,14 +30,14 @@ public class Pathfinder {
 
         PriorityQueue<CheckedPoint> openQueue =
                 new PriorityQueue<>(
-                        Comparator.comparingInt(CheckedPoint::fValue)
+                        Comparator.comparingDouble(CheckedPoint::fValue)
                                 .thenComparingInt(Utils::rotatedOrderCP)
                 );
 
         Map<Point, CheckedPoint> openMap = new HashMap<>();
         Map<Point, CheckedPoint> closedList = new HashMap<>();
 
-        CheckedPoint start = new CheckedPoint(startPos, 0, 0, null);
+        CheckedPoint start = new CheckedPoint(startPos, 0, 0, null, 0);
         openQueue.add(start);
         openMap.put(startPos, start);
 
@@ -53,23 +53,24 @@ public class Pathfinder {
             List<Point> neighbours = map.getNotWallNeighbours(currentPos);
 
             for (Point p : neighbours) {
-
                 if (closedList.containsKey(p)) continue;
+                int isUnknown = map.isUnknown(p) ? 1 : 0;
+                int unknownPassed = current.unknownPassed() + isUnknown;
 
                 int g = current.gValue() + 1;
                 int h = Utils.getManhattan(p, goalPos);
-                int f = g + h;
+                float f = g + h + (float)(Math.pow((float) Math.E, (0.1f*unknownPassed)));
 
                 CheckedPoint existing = openMap.get(p);
 
                 if (existing == null) {
-                    CheckedPoint cp = new CheckedPoint(p, g, f, current);
+                    CheckedPoint cp = new CheckedPoint(p, g, f, current, unknownPassed);
                     openQueue.add(cp);
                     openMap.put(p, cp);
                 } else if (g < existing.gValue()) {
                     // Update f-values wenn dieser weg besser ist
                     openQueue.remove(existing);
-                    existing = new CheckedPoint(p, g, f, current);
+                    existing = new CheckedPoint(p, g, f, current, unknownPassed);
                     openQueue.add(existing);
                     openMap.put(p, existing);
                 }
