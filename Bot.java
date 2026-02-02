@@ -50,6 +50,7 @@ public class Bot extends Logger {
     }
 
     private static void firstTick(){
+        log("Bot startet mit der Version vom 2.2.26");
         cfg = parser.parseConfig();
         log(cfg);
 
