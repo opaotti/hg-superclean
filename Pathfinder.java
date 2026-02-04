@@ -22,7 +22,7 @@ public class Pathfinder {
 
         AStarKey key = new AStarKey(startPos, goalPos);
 
-        if(aStarCache.containsKey(key)){
+        if(aStarCache.containsKey(key) && false){
             return aStarCache.get(key);
         }
 
