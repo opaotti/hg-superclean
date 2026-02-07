@@ -146,7 +146,7 @@ public class Bot extends Logger {
     }
 
     public static void lostControl(){
-        System.err.println("Kontrolle verloren");
+        System.err.println("Kontrolle verloren bei Tick "+currenttick);
         lostControl = true;
         sm.resetRoot();
     }
