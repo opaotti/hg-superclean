@@ -3,6 +3,7 @@ import java.util.*;
 public class GemManager extends Logger {
     private final List<Gem> gems = new ArrayList<>();
     private final Map<Path, Integer> gemPaths = new HashMap<>();
+    private final List<Gem> toDeleteGems = new ArrayList<>();
     private Point botPos;
     private boolean mapComplete;
     private Point newSpawntGem;
@@ -14,9 +15,11 @@ public class GemManager extends Logger {
         pf = p;
     }
 
-    public void update(Point bPos){
+    public void update(Point bPos, List<Gem> parsedGems){
         botPos = bPos;
         mapComplete = Bot.mapM.mapComplete();
+
+        gems_init(parsedGems);
 
         generateGemPaths();
     }
@@ -106,6 +109,7 @@ public class GemManager extends Logger {
 
         for (Gem g : set) if(!Utils.isPosInGems(g.pos, gems)) {
             gems.add(g);
+            log(g.pos+" als neuer Gem");
             if (g.ttl == MAX_TTL) newSpawntGem = g.pos;
         }
     }
@@ -117,26 +121,29 @@ public class GemManager extends Logger {
             Gem g = it.next();
             g.tick();
 
-            if (g.ttl <= 0) {
+            if (g.ttl < 0) {
+                log("Gem an "+g.pos+" wegen ttl entfernt ➖");
+                toDeleteGems.add(new Gem(g.pos, 0));
                 it.remove();
             }
         }
     }
 
     public void gems_init(List<Gem> parsedGems){
-        Set<Gem> toRemove = new HashSet<>();
+        readVisibleGems(parsedGems);
+        log("Gems: "+gems);
+        toDeleteGems.clear();
+
         if(!gems.isEmpty()) for(Gem g : gems) if(g.pos.equals(botPos) ||
                 // damit falls ein enemy die nimmt die entfernt werden.
-                (Bot.POV.contains(g.pos) && !Utils.gemsToPointSet(parsedGems).contains(g.pos))) {
-            log("➖ Gem gesammelt");
-            toRemove.add(g);
-            Bot.sm.gemCollected(g.pos);
+                (Bot.POV.contains(g.pos) && !Utils.isPosInGems(g.pos, parsedGems))) {
+            log("➖ Gem gesammelt bei "+g.pos);
+            toDeleteGems.add(g);
         }
-        if (!toRemove.isEmpty()) {
-            gems.removeAll(toRemove);
+        if (!toDeleteGems.isEmpty()) {
+            gems.removeAll(toDeleteGems);
         }
 
-        readVisibleGems(parsedGems);
         gemsTick();
     }
 
@@ -145,10 +152,10 @@ public class GemManager extends Logger {
         gems.clear();
 
         for(int c = 0; c < points.size(); c++){
-            Gem g = new Gem(points.get(c), ttls.get(c));
+            Gem g = new Gem(points.get(c), ttls.get(c)-1);
             gems.add(g);
         }
-        log("inserted");
+        log("inserted, gems: "+gems);
     }
 
     public List<Gem> getGems(){
@@ -157,5 +164,9 @@ public class GemManager extends Logger {
 
     public Point newSpawnedGemPos(){
         return newSpawntGem;
+    }
+
+    public List<Gem> getToDeleteGems(){
+        return toDeleteGems;
     }
 }

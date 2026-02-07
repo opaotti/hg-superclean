@@ -78,12 +78,11 @@ public class Bot extends Logger {
             bestPOVSize = POV.size();
         }
 
-        gm.gems_init(parser.parseVisibleGems());
+        gm.update(botPos, parser.parseVisibleGems());
         mapM.addPOV(POV, parser.parseWalls());
         if(!lostControl) {
             sm.update((float) parser.parseSignal());
         } else log("kontrolle verloren...");
-        gm.update(botPos);
 
         if (mustLog){
             hl.addTiles(sm.getTree(), "#7ee8fdcc");

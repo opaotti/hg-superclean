@@ -29,6 +29,9 @@ public class SignalManager extends Logger {
     }
 
     public void update(float signalValue){
+        updateTtl();
+        collectGems(Bot.gm.getToDeleteGems());
+
         signal = signalValue;
         signalSum.clear();
         deepestNodes.clear();
@@ -36,28 +39,12 @@ public class SignalManager extends Logger {
         allNodes.addAll(root.getAllNodes());
         botPos = Bot.botPos;
         log("Signal: "+signal);
-        log("gemsttl.size(): "+gemsTtl.size());
 
-        updateTtl();
-
-        root.printTree();
+        log("gemsttl: "+gemsTtl);
 
         if (signal == 0){
             gemsTtl.clear();
             gems.clear();
-        }
-
-        if (root.isLine()){
-            log("Alles berechnet Gem size: "+root.getTreeDepth());
-            gems = new ArrayList<>(root.getLine());
-
-            gm.insertGemsFromLists(gems, gemsTtl);
-        }
-        else{/*
-            log("root.children.size: "+root.children.size());
-            log(root.getChildrenPos());
-            if(!root.children.isEmpty()) if (!root.getChild().children.isEmpty()) log("root.grandchild.children.size: "+root.getChild().getChild().children.size());
-            log(root.getChild().getChildrenPos());*/
         }
 
         if (root.children.isEmpty() && signalValue > 0){
@@ -75,6 +62,7 @@ public class SignalManager extends Logger {
 
             Point newGem = gm.newSpawnedGemPos();
             if (newGem != null){
+                log("neuer gem in sichtbereich gespawnt");
                 for (GemPredictionTree leaf : deepestNodes){
                     leaf.addChild(newGem);
                 }
@@ -106,6 +94,19 @@ public class SignalManager extends Logger {
         }
         root.printTree();
         log("Signal: "+signal);
+
+        if (root.isLine()){
+            log("Alles berechnet Gem size: "+root.getTreeDepth());
+            gems = new ArrayList<>(root.getLine());
+
+            gm.insertGemsFromLists(gems, gemsTtl);
+        }
+        else{/*
+            log("root.children.size: "+root.children.size());
+            log(root.getChildrenPos());
+            if(!root.children.isEmpty()) if (!root.getChild().children.isEmpty()) log("root.grandchild.children.size: "+root.getChild().getChild().children.size());
+            log(root.getChild().getChildrenPos());*/
+        }
     }
 
     public Point getBestPossibleGem(Point startPos){
@@ -205,14 +206,13 @@ public class SignalManager extends Logger {
         for (int idx = 0; idx < gemsTtl.size(); idx++) {
             int ttl = gemsTtl.get(idx) - 1;
             gemsTtl.set(idx, ttl);
-
-            if (ttl <= 0) {
-                gemsTtl.remove(idx);
-                gems.remove(idx);
-                root.removeLayer(idx+1, botPos);
-                idx--; // wichtig wegen Indexverschiebung
-            }
         }
+        /*
+        if (gems.isEmpty()) return;
+        if (gemsTtl.get(0) < 0){
+            gemsTtl.remove(0);
+            gems.remove(0);
+        }*/
     }
 
     public List<Point> getTree(){
@@ -245,24 +245,24 @@ public class SignalManager extends Logger {
         }
     }
 
-    public void gemCollected(Point gemPos){
-        log("Vor collect:");
+    private void collectGems(List<Gem> positions){
+        for (Gem p : positions) gemCollected(p);
+    }
+
+    private void gemCollected(Gem gem){
+        Point gemPos = gem.pos;
+        log("vor collect von "+gemPos+" mit der ttl: "+gem.ttl);
+        log("(gemttl: "+gemsTtl+")");
         root.printTree();
 
-        for (GemPredictionTree node : allNodes){
-            if (node.pos == null) continue;
+        int depth = gemsTtl.indexOf(gem.ttl)+1;
+        root.removeLayer(depth, gemPos);
+        log(depth+". Gemlayer wurde gelöscht wegen "+gemPos+" (depth="+depth+")");
 
-            if(node.pos.equals(gemPos)){
-                int depth = node.getOwnDepth();
-                root.removeLayer(depth, gemPos);
-                log(depth+". Gemlayer wurde gelöscht wegen "+gemPos+" (depth="+depth+")");
+        gemsTtl.remove(depth-1);
+        gems.remove(depth-1);
 
-                gemsTtl.remove(depth-1);
-                gems.remove(depth-1);
-                break;
-            }
-        }
-        log("Nach collect:");
+        log("nach collect ");
         root.printTree();
     }
 
