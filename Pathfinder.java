@@ -22,7 +22,7 @@ public class Pathfinder {
 
         AStarKey key = new AStarKey(startPos, goalPos);
 
-        if(aStarCache.containsKey(key) && false){
+        if(aStarCache.containsKey(key)){
             return aStarCache.get(key);
         }
 
@@ -30,14 +30,14 @@ public class Pathfinder {
 
         PriorityQueue<CheckedPoint> openQueue =
                 new PriorityQueue<>(
-                        Comparator.comparingDouble(CheckedPoint::fValue)
+                        Comparator.comparingInt(CheckedPoint::fValue)
                                 .thenComparingInt(Utils::rotatedOrderCP)
                 );
 
         Map<Point, CheckedPoint> openMap = new HashMap<>();
         Map<Point, CheckedPoint> closedList = new HashMap<>();
 
-        CheckedPoint start = new CheckedPoint(startPos, 0, 0, null, 0);
+        CheckedPoint start = new CheckedPoint(startPos, 0, 0, null);
         openQueue.add(start);
         openMap.put(startPos, start);
 
@@ -54,23 +54,21 @@ public class Pathfinder {
 
             for (Point p : neighbours) {
                 if (closedList.containsKey(p)) continue;
-                int isUnknown = map.isUnknown(p) ? 1 : 0;
-                int unknownPassed = current.unknownPassed() + isUnknown;
 
                 int g = current.gValue() + 1;
                 int h = Utils.getManhattan(p, goalPos);
-                float f = g + h + (float)(Math.pow((float) Math.E, (0.1f*unknownPassed)));
+                int f = g + h;
 
                 CheckedPoint existing = openMap.get(p);
 
                 if (existing == null) {
-                    CheckedPoint cp = new CheckedPoint(p, g, f, current, unknownPassed);
+                    CheckedPoint cp = new CheckedPoint(p, g, f, current);
                     openQueue.add(cp);
                     openMap.put(p, cp);
                 } else if (g < existing.gValue()) {
                     // Update f-values wenn dieser weg besser ist
                     openQueue.remove(existing);
-                    existing = new CheckedPoint(p, g, f, current, unknownPassed);
+                    existing = new CheckedPoint(p, g, f, current);
                     openQueue.add(existing);
                     openMap.put(p, existing);
                 }

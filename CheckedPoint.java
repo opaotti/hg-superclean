@@ -1,4 +1,4 @@
-public record CheckedPoint(Point pos, int gValue, float fValue, CheckedPoint parent, int unknownPassed) {
+public record CheckedPoint(Point pos, int gValue, int fValue, CheckedPoint parent) {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
